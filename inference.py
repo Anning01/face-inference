@@ -23,16 +23,16 @@ class MultiTaskResNet(nn.Module):
         num_ftrs = self.backbone.fc.in_features
         self.backbone.fc = nn.Identity()
 
-        self.fc_race = nn.Linear(num_ftrs, len(RACE_LIST))
-        self.fc_gender = nn.Linear(num_ftrs, len(GENDER_LIST))
-        self.fc_age = nn.Linear(num_ftrs, len(AGE_LIST))
+        self.race_head = nn.Linear(num_ftrs, len(RACE_LIST))
+        self.gender_head = nn.Linear(num_ftrs, len(GENDER_LIST))
+        self.age_head = nn.Linear(num_ftrs, len(AGE_LIST))
 
     def forward(self, x):
         features = self.backbone(x)
         return {
-            'race': self.fc_race(features),
-            'gender': self.fc_gender(features),
-            'age': self.fc_age(features)
+            'race': self.race_head(features),      # 对应修改
+            'gender': self.gender_head(features),  # 对应修改
+            'age': self.age_head(features)         # 对应修改
         }
 
 # --- 3. 推理类 ---
