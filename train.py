@@ -85,14 +85,14 @@ class FaceMultiTaskDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        img_path = os.path.join(self.img_dir, os.path.basename(row['cropped_image_path']))
+        img_path = os.path.join(self.img_dir, row['filename'])
 
         image = Image.open(img_path).convert('RGB')
 
         labels = {
-            'race': torch.tensor(self.race_to_idx[row['race']], dtype=torch.long),
-            'gender': torch.tensor(self.gender_to_idx[row['gender']], dtype=torch.long),
-            'age': torch.tensor(self.age_to_idx[row['age']], dtype=torch.long)
+            'race': torch.tensor(self.race_to_idx[row['race_label']], dtype=torch.long),
+            'gender': torch.tensor(self.gender_to_idx[row['gender_label']], dtype=torch.long),
+            'age': torch.tensor(self.age_to_idx[row['age_group_label']], dtype=torch.long)
         }
 
         if self.transform:
@@ -140,8 +140,8 @@ def train_model():
     ])
 
     # 加载数据集
-    train_dataset = FaceMultiTaskDataset('face_data/train/annotations.csv', 'cropped_faces', train_transform)
-    val_dataset = FaceMultiTaskDataset('face_data/val/annotations.csv', 'cropped_faces', val_transform)
+    train_dataset = FaceMultiTaskDataset('face_data/train/annotations.csv', 'face_data/train', train_transform)
+    val_dataset = FaceMultiTaskDataset('face_data/val/annotations.csv', 'face_data/val', val_transform)
 
     train_loader = DataLoader(
         train_dataset,
