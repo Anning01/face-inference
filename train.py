@@ -140,8 +140,8 @@ def train_model():
     ])
 
     # 加载数据集
-    train_dataset = FaceMultiTaskDataset('face_data/train/annotations.csv', 'face_data/train', train_transform)
-    val_dataset = FaceMultiTaskDataset('face_data/val/annotations.csv', 'face_data/val', val_transform)
+    train_dataset = FaceMultiTaskDataset('face_data/train/annotations.csv', 'face_data/train/images', train_transform)
+    val_dataset = FaceMultiTaskDataset('face_data/val/annotations.csv', 'face_data/val/images', val_transform)
 
     train_loader = DataLoader(
         train_dataset,
