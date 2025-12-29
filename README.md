@@ -10,9 +10,53 @@
 | **年龄** | 9 | 0-2, 3-9, 10-19, 20-29, 30-39, 40-49, 50-59, 60-69, 70+ |
 | **人种** | 7 | White, Black, Latino, Asian, Southeast Asian, Indian, Middle Eastern |
 
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+# 使用 uv (推荐)
+uv sync
+
+# 或使用 pip
+pip install torch torchvision pandas pillow tqdm insightface
+```
+
+> **重要**: 如果使用 GPU 进行人脸检测，必须安装 `onnxruntime-gpu` 而不是 `onnxruntime`，否则性能会严重下降！
+
+```bash
+# 正确安装方式 (GPU)
+pip uninstall onnxruntime onnxruntime-gpu  # 先卸载已有版本
+pip install onnxruntime-gpu
+
+# 验证 CUDA 是否生效
+python -c "import onnxruntime; print(onnxruntime.get_available_providers())"
+# 应该输出: ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+```
+
+### 2. 运行推理
+
+```bash
+# 将测试图片放入 example/ 目录
+python inference.py
+```
+
+推理结果将保存到 `results/` 目录，包含标注后的图片。
+
+### 示例输出
+
+```
+人脸 1: 女性, 30-39岁, 白人 (置信度: G=0.98, A=0.63, R=0.99)
+人脸 1: 男性, 40-49岁, 黑人 (置信度: G=1.00, A=0.54, R=0.95)
+人脸 1: 女性, 0-2岁, 白人 (置信度: G=0.99, A=0.99, R=0.95)
+```
+
 ## 训练数据
 
 使用 87,648 张头像图片训练，标签分布如下：
+
+<details>
+<summary>点击展开数据分布详情</summary>
 
 **性别分布**
 | 类别 | 数量 | 占比 |
@@ -44,6 +88,8 @@
 | 70+ | 623 | 0.9% |
 | 0-2 | 473 | 0.7% |
 
+</details>
+
 ## 数据处理
 
 数据处理代码位于: [huihuaAI/face-inference](https://github.com/huihuaAI/face-inference)
@@ -68,16 +114,6 @@
 | `generate_annotations.py` | 自动属性标注 |
 | `main.py` | FastAPI 手动标注服务 |
 
-## 安装
-
-```bash
-# 使用 uv (推荐)
-uv sync
-
-# 或使用 pip
-pip install torch torchvision pandas pillow tqdm
-```
-
 ## 训练
 
 ```bash
@@ -86,50 +122,56 @@ python train.py
 
 ### 训练配置
 
-- **Batch Size**: 256
-- **Epochs**: 20
-- **Optimizer**: AdamW (lr=0.0004, weight_decay=0.01)
-- **Scheduler**: OneCycleLR
-- **混合精度**: 启用 (AMP)
+| 参数 | 值 |
+|------|------|
+| Batch Size | 256 |
+| Epochs | 20 |
+| Optimizer | AdamW (lr=0.0004, weight_decay=0.01) |
+| Scheduler | OneCycleLR |
+| 混合精度 | AMP (FP16) |
 
 ### 训练优化
 
-- 任务损失权重平衡 (Gender 权重降低)
-- 类别权重处理数据不平衡
-- `torch.compile` 加速
-- TF32 和 cuDNN benchmark
+- **任务损失权重平衡**: Gender 权重 0.5，Race/Age 权重 1.0
+- **类别权重**: 使用平滑逆频率处理数据不平衡
+- **torch.compile**: PyTorch 2.0+ 图优化加速
+- **TF32 + cuDNN benchmark**: CUDA 加速
 
-## 推理
+## 推理 API
 
 ```python
-import torch
-from torchvision import transforms
-from PIL import Image
+from inference import FaceInference
 
-# 加载模型
-model = MultiTaskResNet50()
-checkpoint = torch.load('checkpoints/resnet50_face_multitask.pth')
-model.load_state_dict(checkpoint['model_state_dict'])
-model.eval()
+# 初始化
+infer = FaceInference('checkpoints/resnet50_face_multitask.pth')
 
-# 预处理
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
+# 预测单张图片
+infer.predict('example/test.jpg', output_dir='results')
+```
 
-# 推理
-image = Image.open('face.jpg').convert('RGB')
-input_tensor = transform(image).unsqueeze(0)
+### 输出说明
 
-with torch.no_grad():
-    outputs = model(input_tensor)
-    race_pred = RACE_LIST[outputs['race'].argmax()]
-    gender_pred = GENDER_LIST[outputs['gender'].argmax()]
-    age_pred = AGE_LIST[outputs['age'].argmax()]
+- 检测到的人脸会用红框标注
+- 每个人脸上方显示：`性别, 年龄段, 人种`
+- 置信度：G=性别, A=年龄, R=人种
 
-print(f"Race: {race_pred}, Gender: {gender_pred}, Age: {age_pred}")
+## 项目结构
+
+```
+face-inference/
+├── train.py              # 训练脚本
+├── inference.py          # 推理脚本
+├── face_processor.py     # 人脸检测和裁剪工具
+├── example/              # 示例图片目录
+├── results/              # 推理结果输出目录
+├── checkpoints/          # 模型权重目录
+└── face_data/            # 训练数据目录
+    ├── train/
+    │   ├── images/
+    │   └── annotations.csv
+    └── val/
+        ├── images/
+        └── annotations.csv
 ```
 
 ## 训练环境
@@ -144,5 +186,4 @@ print(f"Race: {race_pred}, Gender: {gender_pred}, Age: {age_pred}")
 
 ## License
 
-click view [LICENSE](LICENSE) file
-
+See [LICENSE](LICENSE) file for details.

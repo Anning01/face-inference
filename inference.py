@@ -119,7 +119,7 @@ if __name__ == "__main__":
     infer = FaceInference(MODEL_PATH)
 
     # 示例：处理一个文件夹
-    test_folder = "test_images"
+    test_folder = "example"
     if os.path.exists(test_folder):
         for f in os.listdir(test_folder):
             if f.lower().endswith(('.png', '.jpg', '.jpeg')):
