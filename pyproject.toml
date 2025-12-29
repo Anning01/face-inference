@@ -1,0 +1,14 @@
+[project]
+name = "face-inference"
+version = "0.1.0"
+description = "基于 ResNet50 的多任务人脸属性预测模型，可同时预测性别、年龄段和人种。"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.3.3",
+    "pandas-stubs~=2.3.3",
+    "pillow>=12.0.0",
+    "torch>=2.9.1",
+    "torchvision>=0.24.1",
+    "tqdm>=4.67.1",
+]
